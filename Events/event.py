@@ -41,4 +41,6 @@ class FillEvent(Event):
     market_id: str
     direction: str
     quantity: float
+    # these likely need some polymarket equivalent
+    fill_price: float
     fee: float

@@ -1,0 +1,1 @@
+question_types = ["Will _ finish last in Group _", "Will _ win group _", "Team VS Team", "__ stage of elimination" ]
