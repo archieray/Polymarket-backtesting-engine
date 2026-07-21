@@ -15,6 +15,7 @@ class Portfolio:
         self.trades = []  # completed round-trips
         self._pending_entry = {}  # market_id -> entry fill info, while a position is open
         self.equity_curve = []  # list of (timestamp, equity)
+        self.alerts = []  # notable events (e.g. capped closes) - surfaced to a future frontend
 
     def process_signal(self, event):
         # "YES" enters (buy), "NO" exits (sell the existing position) - both
@@ -38,6 +39,9 @@ class Portfolio:
 
         quantity_delta = event.quantity if event.direction == "YES" else -event.quantity
         opened, closed, realized_pnl = position.update(quantity_delta, event.fill_price)
+
+        if quantity_delta < 0 and closed < -quantity_delta:
+            self._flag_capped_close(event, requested=-quantity_delta, closed=closed)
 
         if opened:
             self.cash -= opened * event.fill_price + event.fee
@@ -63,6 +67,25 @@ class Portfolio:
                         exit_price=event.fill_price,
                         exit_fee=event.fee,
                     ))
+
+    def _flag_capped_close(self, event, requested, closed):
+        # A close request exceeded what was actually held, so Position
+        # silently capped it - flag it here instead so it's not lost. Every
+        # occurrence is logged now; once a frontend exists, self.alerts is
+        # what it would read from.
+        alert = {
+            "type": "capped_close",
+            "timestamp": event.timestamp,
+            "market_id": event.market_id,
+            "requested": requested,
+            "closed": closed,
+            "shortfall": requested - closed,
+        }
+        self.alerts.append(alert)
+        print(
+            f"ALERT: close request for {event.market_id} at {event.timestamp} was capped - "
+            f"requested {requested}, closed {closed} (shortfall {alert['shortfall']})"
+        )
 
     def update_timeindex(self, event):
         position = self.positions.get(event.market_id)

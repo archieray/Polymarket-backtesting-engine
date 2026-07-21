@@ -13,9 +13,9 @@ class SMAMomentumStrategy(Strategy):
     # single SMA and a single position flag, with no per-symbol keying. Feeding
     # it two different markets' events would silently blend their prices.
     def __init__(self, window=10):
+        super().__init__()
         self.sma = SimpleMovingAverage(window=window)
         self._prev_above = None  # None until the SMA has a first value to compare against
-        self._in_position = False
 
     def calculate_signals(self, event):
         sma_value = self.sma.update(event.price)
@@ -23,7 +23,7 @@ class SMAMomentumStrategy(Strategy):
             # not enough bars yet for the SMA to have a value
             return None
 
-        above = event.price > sma_value
+        above = event.price >= sma_value
         signal = None
 
         # Only fire on the actual crossing bar (a transition), not on every
@@ -33,10 +33,10 @@ class SMAMomentumStrategy(Strategy):
         if self._prev_above is not None:
             if above and not self._prev_above and not self._in_position:
                 signal = SignalEvent(event.timestamp, event.market_id, "YES")
-                self._in_position = True
+                self._enter()
             elif not above and self._prev_above and self._in_position:
                 signal = SignalEvent(event.timestamp, event.market_id, "NO")
-                self._in_position = False
+                self._exit()
 
         self._prev_above = above
         return signal

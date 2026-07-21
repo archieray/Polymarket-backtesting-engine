@@ -13,16 +13,15 @@ TOKEN_ID = "18984892750376483805253418990318943016541056782864991219807572406261
 OUTPUT_FILE = "data/earthquakes_14_16.csv"
 
 
-def fetch_and_save(token_id, output_file):
+def fetch_and_save(token_id, output_file, fidelity=10):
     # Polymarket's public CLOB endpoint - interval="max" pulls the full
-    # available history at 30-min fidelity (fidelity will need to be much
-    # finer for anything closer to live trading; fine for a first backtest).
+    # available history at the given fidelity (in minutes).
     response = requests.get(
         "https://clob.polymarket.com/prices-history",
         params={
             "market": token_id,
             "interval": "max",
-            "fidelity": 30
+            "fidelity": fidelity
         }
     )
 
